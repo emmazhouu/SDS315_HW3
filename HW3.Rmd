@@ -15,6 +15,7 @@ knitr::opts_chunk$set(fig.height=4, fig.width=6, warning=FALSE, tidy=TRUE, tidy.
 ------------------------------------------------------------------------
 
 Link to GitHub:
+https://github.com/emmazhouu/SDS315_HW3
 
 ```{r message=FALSE, warning=FALSE, echo=FALSE}
 library(ggplot2)
