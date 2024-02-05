@@ -1,0 +1,136 @@
+---
+title: "**HW 3 2/6/24**"
+author: "Emma Zhou - ez4493 - SDS 315"
+output:
+  html_document:
+  pdf_document:  
+    toc: true
+    toc_float: yes
+---
+
+```{r global_options, echo=FALSE}
+knitr::opts_chunk$set(fig.height=4, fig.width=6, warning=FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60))
+```
+
+------------------------------------------------------------------------
+
+Link to GitHub:
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+library(knitr)
+library(mosaic)
+```
+
+## **Q1**
+### **A)**
+```{r echo=FALSE, results='hide'}
+creatinine <- read.csv('creatinine.csv')
+
+#ggplot(creatinine) + geom_point(aes(x = age, y = creatclear)) + geom_smooth(aes(x =  age, y = creatclear), method = 'lm') + labs(title = 'Creatinine Clearance (mL/min) and Age', x = 'Age', y = 'Creatinine Clearance (mL/min)')
+
+model_creat <- lm(creatclear ~ age, data = creatinine)
+
+predict(model_creat, newdata = creatinine)
+
+creatinine_new <- creatinine %>% 
+  mutate(creat_pred = predict(model_creat, newdata = .))
+
+creatinine_new[creatinine_new$age==55,]
+```
+A 55 year old has an expected creatinine clearance rate of 113.723 mL/min. This can be predicted by using a linear regression model of creatinine clearance rates by age and plugging in 55 as the feature "x" variable in the equation y<sub>i</sub> = B<sub>0</sub> + B<sub>1</sub>x<sub>i</sub> + e<sub>i</sub> to predict the "y" target variable (creatinine clearance).
+
+### **B)**
+```{r echo=FALSE, results='hide'}
+coef(model_creat)
+```
+Creatinine clearance rate decreases with age at a rate of -0.62 mL/min/year, which is indicated by the slope (B<sub>1</sub>) from fitting a linear model for this relationship. 
+
+
+### **C)**
+```{r echo=FALSE, results='hide'}
+healthy_test <- tibble(age = c(40, 60), rate = c(135, 112))
+
+healthy_test <- mutate(healthy_test, predictions = predict(model_creat, newdata = healthy_test))
+
+healthy_test <- mutate(healthy_test, residuals = rate - predictions)
+
+healthy_test
+```
+A 40 year old with a creatinine clearance rate of 135 is healthier for their age than a 60 year old with a rate of 112, which is determined by comparing the residuals at both ages. To find the residuals, the predicted creatinine clearance is subtracted from the actual rate to make an equal comparison, where a higher residual means a healthier than expected clearance rate.
+
+## **Q2**
+```{r echo=FALSE, results='hide'}
+marketmodel <- read.csv('marketmodel.csv')
+
+aapl_model <- lm(AAPL ~ SPY, data = marketmodel)
+goog_model <- lm(GOOG ~ SPY, data = marketmodel)
+mrk_model <- lm(MRK ~ SPY, data = marketmodel)
+jnj_model <- lm(JNJ ~ SPY, data = marketmodel)
+wmt_model <- lm(WMT ~ SPY, data = marketmodel)
+tgt_model <- lm(TGT ~ SPY, data = marketmodel)
+
+model_list <- list(aapl_model, goog_model, mrk_model, jnj_model, wmt_model, tgt_model)
+
+regress_market <- tibble(stock = c('AAPL', 'GOOG', 'MRK', 'JNJ', 'WMT', 'TGT'), alpha = NA, beta = NA, 'R^2' = NA)
+
+for (i in 1:6) {
+  regress_market$alpha[i] <- as_tibble(coef(model_list[[i]]))[1,]
+  regress_market$beta[i] <- as_tibble(coef(model_list[[i]]))[2,]
+  regress_market$`R^2`[i] <- rsquared(model_list[[i]])
+}
+```
+
+```{r echo=FALSE}
+kable(regress_market, caption = '<center> **S&P 500 Stock Regressions** </center>')
+```
+The table above shows 6 of the S&P 500 Stocks and information about their change in returns found by fitting linear regression models for a dataset of their daily returns. The "stock" variable contains the ticker symbol for the 6 stocks, "alpha" is the intercept of the model, "beta" is the percent change in stock return for every 1% change in the S&P 500 stock index, and R<sup>2</sup> measures variance in the return of a stock explained by the market rate of return.
+
+The "beta" of a stock is measuring the systematic risk of the market as a whole that a firm can not diversify away. Thus, for every 1% change in the market portfolio, in this case the S&P 500 stock index, the beta is the percentage change in a stock's return. A beta higher than 1 means the stock has more systematic risk because although the return increases more than the market when the market goes up, the return also decreases more when the market goes down. A beta of 0 indicates no relationship with the market portfolio, and a rare negative beta means the return is less than the risk free rate. Beta (B<sub>1</sub>) is calculated as the "slope" of the linear regression model for an asset's rate of return, generally denoted as Y<sub>t</sub> = B<sub>0</sub> + B<sub>1</sub>X<sub>t</sub> + e<sub>yt</sub>.
+
+Out of these 6 S&P 500 stocks, AAPL has the highest systematic risk and WMT has the lowest systematic risk.
+
+
+## **Q3**
+```{r echo=FALSE, results='hide'}
+covid <- read.csv('covid.csv')
+spain <- filter(covid, country=='Spain')
+italy <- filter(covid, country=='Italy')
+
+#ggplot(spain) + geom_line(aes(x = days_since_first_death, y = deaths))
+
+#ggplot(spain) + geom_line(aes(x = days_since_first_death, y = log(deaths)))
+
+spain_model <- lm(log(deaths) ~ days_since_first_death, data = spain)
+coef(spain_model)
+
+italy_model <- lm(log(deaths) ~ days_since_first_death, data = italy)
+coef(italy_model)
+
+spain_doublingtime <- round(70/0.2762447,0)
+italy_doublingtime <- round(70/0.183218,0)
+
+ggplot(covid) + geom_line(aes(x = days_since_first_death, y = deaths, col = country)) + labs(title = 'Covid Deaths by Days Since First Death and Country', x = 'Days Since First Death', y = 'Deaths')
+```
+
+The estimated growth rate for Italy's daily death total is 0.183 deaths/day, and the doubling time is 382 days. 
+Spain's estimated growth rate is 0.276 deaths/day with a doubling time of 253 days.
+
+## **Q4**
+```{r echo=FALSE, results='hide'}
+milk <- read.csv('milk.csv')
+
+#ggplot(milk) + geom_line(aes(x = price, y = log(sales)))
+
+milk_model <- lm(log(sales) ~ price, data = milk)
+coef(milk_model)
+```
+The estimated price elasticity of demand for milk is -0.541 log(sales)/dollar, which was found by using linear regression to model the exponential relationship between price and sales. The logarithm of milk sales and the price of milk is a linear relationship, and the slope of that relationship is the estimated price elasticity of demand for milk.
+
+
+
+
+
+
